@@ -6,8 +6,12 @@ import logging
 import os
 import sys
 import errno
+import re
 
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
+
+# Dictionary for storing current file versions
+ver_dict = {}
 
 
 class VersionFS(LoggingMixIn, Operations):
@@ -126,6 +130,7 @@ class VersionFS(LoggingMixIn, Operations):
 
     def create(self, path, mode, fi=None):
         print '** create:', path, '**'
+
         full_path = self._full_path(path)
         return os.open(full_path, os.O_WRONLY | os.O_CREAT, mode)
 
@@ -142,6 +147,39 @@ class VersionFS(LoggingMixIn, Operations):
     def truncate(self, path, length, fh=None):
         print '** truncate:', path, '**'
         full_path = self._full_path(path)
+        min_version = -1
+        max_version = 0
+        no_versions = 0
+        # Finding all files in directory
+        for i in os.listdir(self.root):
+            filename, ext = os.path.splitext(i)
+            n = re.match("(\\S*)\\[\\d*\\]", filename)  # Get filename without any [...]
+            if n:
+                filename = n.group(1)
+                m = re.match(filename + "\\[(\\d*)\\]" + ext + "?", i)
+                if m:
+                    no_versions += 1
+                    max_version = m.group(1) if max_version < m.group(1) else max_version
+                    min_version = m.group(1) if (min_version < 0 or min_version > m.group(1)) else min_version
+
+        if no_versions > 6:
+            # Delete min-version
+            print path
+            filename, ext = os.path.splitext(path)
+            to_delete = filename +'[' + min_version + ']' + ext
+            print to_delete
+            os.remove(to_delete)
+
+        # Create new version
+
+        # ++ver_dict[path]
+        # else:
+        #     ver_dict[path] = 0  # Start version count at 0
+
+        # name, ext = os.path.splitext(path)
+        # name += '[' + repr(ver_dict[path]) + ']'
+        # path = name + ext
+
         with open(full_path, 'r+') as f:
             f.truncate(length)
 
