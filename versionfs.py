@@ -124,28 +124,28 @@ class VersionFS(LoggingMixIn, Operations):
     # ============
 
     def open(self, path, flags):
-        print '** open:', path, '**'
+        print '** open:', path, '**\n'
         full_path = self._full_path(path)
         return os.open(full_path, flags)
 
     def create(self, path, mode, fi=None):
-        print '** create:', path, '**'
+        print '** create:', path, '**\n'
 
         full_path = self._full_path(path)
         return os.open(full_path, os.O_WRONLY | os.O_CREAT, mode)
 
     def read(self, path, length, offset, fh):
-        print '** read:', path, '**'
+        print '** read:', path, '**\n'
         os.lseek(fh, offset, os.SEEK_SET)
         return os.read(fh, length)
 
     def write(self, path, buf, offset, fh):
-        print '** write:', path, '**'
+        print '** write:', path, '**\n'
         os.lseek(fh, offset, os.SEEK_SET)
         return os.write(fh, buf)
 
     def truncate(self, path, length, fh=None):
-        print '** truncate:', path, '**'
+        print '** truncate:', path, '**\n'
         full_path = self._full_path(path)
         min_version = -1
         max_version = 0
@@ -164,11 +164,9 @@ class VersionFS(LoggingMixIn, Operations):
 
         if no_versions > 6:
             # Delete min-version
-            print path
             filename, ext = os.path.splitext(path)
             to_delete = filename +'[' + min_version + ']' + ext
-            print to_delete
-            os.remove(to_delete)
+            os.remove(self.root + to_delete)
 
         # Create new version
 
@@ -184,15 +182,15 @@ class VersionFS(LoggingMixIn, Operations):
             f.truncate(length)
 
     def flush(self, path, fh):
-        print '** flush', path, '**'
+        print '** flush', path, '**\n'
         return os.fsync(fh)
 
     def release(self, path, fh):
-        print '** release', path, '**'
+        print '** release', path, '**\n'
         return os.close(fh)
 
     def fsync(self, path, fdatasync, fh):
-        print '** fsync:', path, '**'
+        print '** fsync:', path, '**\n'
         return self.flush(path, fh)
 
 
