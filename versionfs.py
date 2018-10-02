@@ -13,6 +13,9 @@ from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 # Dictionary for storing current file versions
 ver_dict = {}
 
+# Constant for max. number of version files
+MAX_VER_COUNT = 6
+
 
 class VersionFS(LoggingMixIn, Operations):
     def __init__(self):
@@ -33,6 +36,14 @@ class VersionFS(LoggingMixIn, Operations):
             partial = partial[1:]
         path = os.path.join(self.root, partial)
         return path
+
+    def _copy_file(self, source, dest, buffer_size=1024*1024):
+        with open(source, 'rb') as src, open(dest, 'wb') as dst:
+            while True:
+                copy_buffer = src.read(buffer_size)
+                if not copy_buffer:
+                    break
+                dst.write(copy_buffer)
 
     # Filesystem methods
     # ==================
@@ -162,21 +173,17 @@ class VersionFS(LoggingMixIn, Operations):
                     max_version = m.group(1) if max_version < m.group(1) else max_version
                     min_version = m.group(1) if (min_version < 0 or min_version > m.group(1)) else min_version
 
-        if no_versions > 6:
+        if no_versions >= MAX_VER_COUNT:
             # Delete min-version
             filename, ext = os.path.splitext(path)
             to_delete = filename +'[' + min_version + ']' + ext
             os.remove(self.root + to_delete)
 
-        # Create new version
-
-        # ++ver_dict[path]
-        # else:
-        #     ver_dict[path] = 0  # Start version count at 0
-
-        # name, ext = os.path.splitext(path)
-        # name += '[' + repr(ver_dict[path]) + ']'
-        # path = name + ext
+        name, ext = os.path.splitext(path)
+        new_version = int(max_version) + 1
+        to_create = name + '[' + str(new_version) + ']' + ext
+        self._copy_file(self.root + path, self.root + to_create)
+        # TODO: This method copies the file BEFORE it has been saved :/
 
         with open(full_path, 'r+') as f:
             f.truncate(length)
