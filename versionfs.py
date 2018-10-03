@@ -93,7 +93,6 @@ class VersionFS(LoggingMixIn, Operations):
         return dict((key, getattr(st, key)) for key in ('st_atime', 'st_ctime',
                      'st_gid', 'st_mode', 'st_mtime', 'st_nlink', 'st_size', 'st_uid'))
 
-    # TODO: Modify this to only show non version files.
     def readdir(self, path, fh):
         # print "readdir:", path
         full_path = self._full_path(path)
