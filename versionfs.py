@@ -102,7 +102,8 @@ class VersionFS(LoggingMixIn, Operations):
         if os.path.isdir(full_path):
             dirents.extend(os.listdir(full_path))
         for r in dirents:
-            yield r
+            if not r.startswith('.'):
+                yield r
 
     def readlink(self, path):
         # print "readlink:", path
@@ -192,7 +193,7 @@ class VersionFS(LoggingMixIn, Operations):
 
     def release(self, path, fh):
         print '** release', path, '**'
-        
+
         head, tail = os.path.split(path)  # Get filename of path and check whether it is hidden (starts with a '.')
         if self._is_save('release') and not tail.startswith('.'):
 
@@ -213,13 +214,14 @@ class VersionFS(LoggingMixIn, Operations):
 
             # Check whether content has actually changed or not!
             filename, ext = os.path.splitext(path)
-            if max_version == 0 or not filecmp.cmp(self._full_path(path), self._full_path(filename + '[' + str(max_version) + ']' + ext)):
+            filename = filename[1:] if filename.startswith('/') else filename
+            if max_version == 0 or not filecmp.cmp(self._full_path(path), self._full_path('.' + filename + '[' + str(max_version) + ']' + ext)):
                 if no_versions >= MAX_VER_COUNT:
                     # Delete min-version
-                    to_delete = filename + '[' + str(min_version) + ']' + ext
+                    to_delete = '.' + filename + '[' + str(min_version) + ']' + ext
                     os.remove(self._full_path(to_delete))
 
-                to_create = filename + '[' + str(max_version + 1) + ']' + ext
+                to_create = '.' + filename + '[' + str(max_version + 1) + ']' + ext
                 self._copy_file(self._full_path(path), self._full_path(to_create))  # copy the file with a new version number
 
         return os.close(fh)
