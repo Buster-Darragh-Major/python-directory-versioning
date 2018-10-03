@@ -10,11 +10,14 @@ import re
 
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 
-# Dictionary for storing current file versions
-ver_dict = {}
-
 # Constant for max. number of version files
 MAX_VER_COUNT = 6
+
+# Finite state machine
+state_dict = {
+    'write': False,
+    'flush': False,
+}
 
 
 class VersionFS(LoggingMixIn, Operations):
@@ -45,6 +48,26 @@ class VersionFS(LoggingMixIn, Operations):
                     break
                 dst.write(copy_buffer)
 
+    # Acts as a FSM for determining whether a save should occur. This should only happen
+    # under the order of write -> flush -> release
+    def _is_save(self, state):
+        if state == 'write':
+            state_dict['write'] = True
+            return False
+        elif state_dict['write'] is True and state == 'flush':
+            state_dict['flush'] = True
+            return False
+        elif state_dict['flush'] is True and state == 'release':
+            state_dict['write'] = False
+            state_dict['flush'] = False
+            return True
+        else:
+            state_dict['write'] = False
+            state_dict['flush'] = False
+            return False
+
+
+
     # Filesystem methods
     # ==================
 
@@ -71,6 +94,7 @@ class VersionFS(LoggingMixIn, Operations):
         return dict((key, getattr(st, key)) for key in ('st_atime', 'st_ctime',
                      'st_gid', 'st_mode', 'st_mtime', 'st_nlink', 'st_size', 'st_uid'))
 
+    # TODO: Modify this to only show non version files.
     def readdir(self, path, fh):
         # print "readdir:", path
         full_path = self._full_path(path)
@@ -135,28 +159,28 @@ class VersionFS(LoggingMixIn, Operations):
     # ============
 
     def open(self, path, flags):
-        print '** open:', path, '**\n'
+        print '** open:', path, '**'
         full_path = self._full_path(path)
         return os.open(full_path, flags)
 
     def create(self, path, mode, fi=None):
-        print '** create:', path, '**\n'
+        print '** create:', path, '**'
 
         full_path = self._full_path(path)
         return os.open(full_path, os.O_WRONLY | os.O_CREAT, mode)
 
     def read(self, path, length, offset, fh):
-        print '** read:', path, '**\n'
+        print '** read:', path, '**'
         os.lseek(fh, offset, os.SEEK_SET)
         return os.read(fh, length)
 
     def write(self, path, buf, offset, fh):
-        print '** write:', path, '**\n'
+        print '** write:', path, '**'
         os.lseek(fh, offset, os.SEEK_SET)
         return os.write(fh, buf)
 
     def truncate(self, path, length, fh=None):
-        print '** truncate:', path, '**\n'
+        print '** truncate:', path, '**'
         full_path = self._full_path(path)
         min_version = -1
         max_version = 0
@@ -189,15 +213,15 @@ class VersionFS(LoggingMixIn, Operations):
             f.truncate(length)
 
     def flush(self, path, fh):
-        print '** flush', path, '**\n'
+        print '** flush', path, '**'
         return os.fsync(fh)
 
     def release(self, path, fh):
-        print '** release', path, '**\n'
+        print '** release', path, '**'
         return os.close(fh)
 
     def fsync(self, path, fdatasync, fh):
-        print '** fsync:', path, '**\n'
+        print '** fsync:', path, '**'
         return self.flush(path, fh)
 
 
