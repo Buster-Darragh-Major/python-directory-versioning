@@ -206,21 +206,19 @@ class VersionFS(LoggingMixIn, Operations):
                     m = re.match(filename + "\\[(\\d*)\\]" + ext + "?", i)
                     if m:
                         no_versions += 1
-                        max_version = m.group(1) if max_version < m.group(1) else max_version
-                        min_version = m.group(1) if (min_version < 0 or min_version > m.group(1)) else min_version
+                        max_version = int(m.group(1)) if max_version < int(m.group(1)) else max_version
+                        min_version = int(m.group(1)) if (min_version < 0 or min_version > int(m.group(1))) else min_version
 
             if no_versions >= MAX_VER_COUNT:
                 # Delete min-version
                 filename, ext = os.path.splitext(path)
-                to_delete = filename + '[' + min_version + ']' + ext
+                to_delete = filename + '[' + str(min_version) + ']' + ext
                 os.remove(self.root + to_delete)
 
             name, ext = os.path.splitext(path)
-            new_version = int(max_version) + 1
+            new_version = max_version + 1
             to_create = name + '[' + str(new_version) + ']' + ext
-            self._copy_file(self.root + path, self.root + to_create)
-            print "COPIED"
-            # TODO: This method copies the file BEFORE it has been saved :/
+            self._copy_file(self.root + path, self.root + to_create)  # copy the file with a new version number
 
         return os.close(fh)
 
