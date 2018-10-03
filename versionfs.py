@@ -7,6 +7,7 @@ import os
 import sys
 import errno
 import re
+import filecmp
 
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 
@@ -191,9 +192,10 @@ class VersionFS(LoggingMixIn, Operations):
 
     def release(self, path, fh):
         print '** release', path, '**'
-
+        # TODO: Change all roots to specialised method
         head, tail = os.path.split(path)  # Get filename of path and check whether it is hidden (starts with a '.')
         if self._is_save('release') and not tail.startswith('.'):
+
             min_version = -1
             max_version = 0
             no_versions = 0
@@ -209,16 +211,16 @@ class VersionFS(LoggingMixIn, Operations):
                         max_version = int(m.group(1)) if max_version < int(m.group(1)) else max_version
                         min_version = int(m.group(1)) if (min_version < 0 or min_version > int(m.group(1))) else min_version
 
-            if no_versions >= MAX_VER_COUNT:
-                # Delete min-version
-                filename, ext = os.path.splitext(path)
-                to_delete = filename + '[' + str(min_version) + ']' + ext
-                os.remove(self.root + to_delete)
+            # Check whether content has actually changed or not!
+            filename, ext = os.path.splitext(path)
+            if max_version == 0 or not filecmp.cmp(self.root + path, self.root + filename + '[' + str(max_version) + ']' + ext):
+                if no_versions >= MAX_VER_COUNT:
+                    # Delete min-version
+                    to_delete = filename + '[' + str(min_version) + ']' + ext
+                    os.remove(self.root + to_delete)
 
-            name, ext = os.path.splitext(path)
-            new_version = max_version + 1
-            to_create = name + '[' + str(new_version) + ']' + ext
-            self._copy_file(self.root + path, self.root + to_create)  # copy the file with a new version number
+                to_create = filename + '[' + str(max_version + 1) + ']' + ext
+                self._copy_file(self.root + path, self.root + to_create)  # copy the file with a new version number
 
         return os.close(fh)
 
@@ -229,6 +231,7 @@ class VersionFS(LoggingMixIn, Operations):
 
 def main(mountpoint):
     FUSE(VersionFS(), mountpoint, nothreads=True, foreground=True)
+
 
 if __name__ == '__main__':
     # logging.basicConfig(level=logging.DEBUG)
