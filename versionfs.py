@@ -192,7 +192,7 @@ class VersionFS(LoggingMixIn, Operations):
 
     def release(self, path, fh):
         print '** release', path, '**'
-        # TODO: Change all roots to specialised method
+        
         head, tail = os.path.split(path)  # Get filename of path and check whether it is hidden (starts with a '.')
         if self._is_save('release') and not tail.startswith('.'):
 
@@ -213,14 +213,14 @@ class VersionFS(LoggingMixIn, Operations):
 
             # Check whether content has actually changed or not!
             filename, ext = os.path.splitext(path)
-            if max_version == 0 or not filecmp.cmp(self.root + path, self.root + filename + '[' + str(max_version) + ']' + ext):
+            if max_version == 0 or not filecmp.cmp(self._full_path(path), self._full_path(filename + '[' + str(max_version) + ']' + ext)):
                 if no_versions >= MAX_VER_COUNT:
                     # Delete min-version
                     to_delete = filename + '[' + str(min_version) + ']' + ext
-                    os.remove(self.root + to_delete)
+                    os.remove(self._full_path(to_delete))
 
                 to_create = filename + '[' + str(max_version + 1) + ']' + ext
-                self._copy_file(self.root + path, self.root + to_create)  # copy the file with a new version number
+                self._copy_file(self._full_path(path), self._full_path(to_create))  # copy the file with a new version number
 
         return os.close(fh)
 
