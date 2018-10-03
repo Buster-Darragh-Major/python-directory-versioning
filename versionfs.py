@@ -54,10 +54,10 @@ class VersionFS(LoggingMixIn, Operations):
         if state == 'write':
             state_dict['write'] = True
             return False
-        elif state_dict['write'] is True and state == 'flush':
+        elif state_dict['write'] and state == 'flush':
             state_dict['flush'] = True
             return False
-        elif state_dict['flush'] is True and state == 'release':
+        elif state_dict['flush'] and state == 'release':
             state_dict['write'] = False
             state_dict['flush'] = False
             return True
@@ -65,8 +65,6 @@ class VersionFS(LoggingMixIn, Operations):
             state_dict['write'] = False
             state_dict['flush'] = False
             return False
-
-
 
     # Filesystem methods
     # ==================
@@ -176,48 +174,54 @@ class VersionFS(LoggingMixIn, Operations):
 
     def write(self, path, buf, offset, fh):
         print '** write:', path, '**'
+        self._is_save('write')  # Tell FSM we have written
         os.lseek(fh, offset, os.SEEK_SET)
         return os.write(fh, buf)
 
     def truncate(self, path, length, fh=None):
         print '** truncate:', path, '**'
         full_path = self._full_path(path)
-        min_version = -1
-        max_version = 0
-        no_versions = 0
-        # Finding all files in directory
-        for i in os.listdir(self.root):
-            filename, ext = os.path.splitext(i)
-            n = re.match("(\\S*)\\[\\d*\\]", filename)  # Get filename without any [...]
-            if n:
-                filename = n.group(1)
-                m = re.match(filename + "\\[(\\d*)\\]" + ext + "?", i)
-                if m:
-                    no_versions += 1
-                    max_version = m.group(1) if max_version < m.group(1) else max_version
-                    min_version = m.group(1) if (min_version < 0 or min_version > m.group(1)) else min_version
-
-        if no_versions >= MAX_VER_COUNT:
-            # Delete min-version
-            filename, ext = os.path.splitext(path)
-            to_delete = filename +'[' + min_version + ']' + ext
-            os.remove(self.root + to_delete)
-
-        name, ext = os.path.splitext(path)
-        new_version = int(max_version) + 1
-        to_create = name + '[' + str(new_version) + ']' + ext
-        self._copy_file(self.root + path, self.root + to_create)
-        # TODO: This method copies the file BEFORE it has been saved :/
-
         with open(full_path, 'r+') as f:
             f.truncate(length)
 
     def flush(self, path, fh):
         print '** flush', path, '**'
+        self._is_save('flush')  # Tell FSM we have flushed
         return os.fsync(fh)
 
     def release(self, path, fh):
         print '** release', path, '**'
+
+        head, tail = os.path.split(path)  # Get filename of path and check whether it is hidden (starts with a '.')
+        if self._is_save('release') and not tail.startswith('.'):
+            min_version = -1
+            max_version = 0
+            no_versions = 0
+            # Finding all files in directory
+            for i in os.listdir(self.root):
+                filename, ext = os.path.splitext(i)
+                n = re.match("(\\S*)\\[\\d*\\]", filename)  # Get filename without any [...]
+                if n:
+                    filename = n.group(1)
+                    m = re.match(filename + "\\[(\\d*)\\]" + ext + "?", i)
+                    if m:
+                        no_versions += 1
+                        max_version = m.group(1) if max_version < m.group(1) else max_version
+                        min_version = m.group(1) if (min_version < 0 or min_version > m.group(1)) else min_version
+
+            if no_versions >= MAX_VER_COUNT:
+                # Delete min-version
+                filename, ext = os.path.splitext(path)
+                to_delete = filename + '[' + min_version + ']' + ext
+                os.remove(self.root + to_delete)
+
+            name, ext = os.path.splitext(path)
+            new_version = int(max_version) + 1
+            to_create = name + '[' + str(new_version) + ']' + ext
+            self._copy_file(self.root + path, self.root + to_create)
+            print "COPIED"
+            # TODO: This method copies the file BEFORE it has been saved :/
+
         return os.close(fh)
 
     def fsync(self, path, fdatasync, fh):
