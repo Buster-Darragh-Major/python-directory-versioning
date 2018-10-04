@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+fuser mount -u mount
+rm -r .versiondir
