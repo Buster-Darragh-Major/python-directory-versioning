@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
 
+# Author:       Buster Major
+# UPI:          bmaj406
+# Date:         5/08/2018
+
 fuser mount -u mount
 rm -r .versiondir

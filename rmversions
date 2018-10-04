@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# Author:       Buster Major
+# UPI:          bmaj406
+# Date:         5/08/2018
+
 import os
 import sys
 import re
@@ -17,6 +21,7 @@ if __name__ == '__main__':
 
     max_version = 0
     version_list = []
+    # Loop through and add all version numbers in [...] for filename to a list
     for i in os.listdir(root):
         m = re.match('.' + filename + '\\[(\\d*)\\]' + ext, i)
         if m:
@@ -24,5 +29,6 @@ if __name__ == '__main__':
             max_version = int(m.group(1)) if max_version < int(m.group(1)) else max_version
 
     for i in version_list:
+        # Remove all files except for maximum version number (corresponds to version 1 in cmd)
         if int(i) is not max_version:
             os.remove(_full_path(root, '.' + filename + '[' + i + ']' + ext))

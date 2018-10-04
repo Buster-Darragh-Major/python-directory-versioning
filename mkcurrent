@@ -1,5 +1,9 @@
 #!/usr/bin/env python
 
+# Author:       Buster Major
+# UPI:          bmaj406
+# Date:         5/08/2018
+
 import os
 import re
 import sys
@@ -12,6 +16,7 @@ if __name__ == '__main__':
     if sys.argv[2] is '1':
         exit(0)
 
+    # Method for finding root of file
     def _full_path(xroot, partial):
         if partial.startswith("/"):
             partial = partial[1:]
@@ -19,7 +24,7 @@ if __name__ == '__main__':
         return path
 
     root = os.path.join(os.getcwd(), '.versiondir/versions')
-    root_no_ver = os.path.join(os.getcwd(), '.versiondir')
+    root_no_ver = os.path.join(os.getcwd(), '.versiondir')  # Actual files kept here
 
     filename, ext = os.path.splitext(sys.argv[1])
 
@@ -39,20 +44,24 @@ if __name__ == '__main__':
         print "You don't have that many versions."
         exit(1)
 
+    # Sort versioned files in directory descending, as requirement states lower numbers input from command
+    # line correspond to higher version numbers
     version_list.sort(reverse=True)
     to_copy = _full_path(root, '.' + filename + '[' + version_list[int(sys.argv[2]) - 1] + ']' + ext)
     latest_version = _full_path(root, '.' + filename + '[' + str(max_version + 1) + ']' + ext)
 
-    with open(to_copy, 'rb') as src, \
-            open(_full_path(root_no_ver, sys.argv[1]), 'wb') as dst, \
-            open(latest_version, 'wb') as new:
+    with open(to_copy, 'rb') as src, \  # File we are copying over
+            open(_full_path(root_no_ver, sys.argv[1]), 'wb') as dst, \  # True file we are 'restoring' version to
+            open(latest_version, 'wb') as new:  # Additional latest version file we create
         while True:
             copy_buffer = src.read(1024*1024)
             if not copy_buffer:
                 break
+            # Write to both current file and new version file
             dst.write(copy_buffer)
             new.write(copy_buffer)
 
+    # If overflow of versions remove oldest
     if ver_count >= MAX_VER_COUNT:
         # Delete min-version
         to_delete = '.' + filename + '[' + str(min_version) + ']' + ext

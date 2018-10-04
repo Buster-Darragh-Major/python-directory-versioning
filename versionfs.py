@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 from __future__ import with_statement
 
+# Edited By:    Buster Major
+# UPI:          bmaj406
+# Date:         5/08/2018
+
 import logging
 
 import os
@@ -203,6 +207,7 @@ class VersionFS(LoggingMixIn, Operations):
         head, tail = os.path.split(path)  # Get filename of path and check whether it is hidden (starts with a '.')
         if self._is_save('release') and not tail.startswith('.'):
 
+            # Make nested directory called "versions" to store versions
             path_filename, path_ext = os.path.splitext(path)
             if not os.path.exists(self._full_path('versions')):
                 os.makedirs(self._full_path('versions'))
@@ -213,24 +218,27 @@ class VersionFS(LoggingMixIn, Operations):
             # Finding all files in directory
             for i in os.listdir(self._full_path('versions')):
                 filename, ext = os.path.splitext(i)
-                n = re.match("(\\S*)\\[\\d*\\]", filename)  # Get filename without any [...]
+                n = re.match("(\\S*)\\[\\d*\\]", filename)  # Check if path[x] matches with path, if so continue
                 if self._remove_prefix(n.group(1)) == self._remove_prefix(path_filename):
+                    # Check and extract version number from [...]
                     m = re.match(self._remove_prefix(path_filename) + "\\[(\\d*)\\]" + ext + "?", self._remove_prefix(i))
                     if m:
                         no_versions += 1
                         max_version = int(m.group(1)) if max_version < int(m.group(1)) else max_version
                         min_version = int(m.group(1)) if (min_version < 0 or min_version > int(m.group(1))) else min_version
 
-            # Check whether content has actually changed or not!
+            # Get just the filename of input path (no extensions)
             filename, ext = os.path.splitext(path)
             filename = self._remove_prefix(filename)
 
+            # Check whether content has actually changed or not!
             if max_version == 0 or not filecmp.cmp(self._full_path(path), self._full_path('versions/.' + filename + '[' + str(max_version) + ']' + ext)):
                 if no_versions >= MAX_VER_COUNT:
                     # Delete min-version
                     to_delete = 'versions/.' + filename + '[' + str(min_version) + ']' + ext
                     os.remove(self._full_path(to_delete))
 
+                # Create a new version based on new content.
                 to_create = 'versions/.' + filename + '[' + str(max_version + 1) + ']' + ext
                 self._copy_file(self._full_path(path), self._full_path(to_create))  # copy the file with a new version number
 
