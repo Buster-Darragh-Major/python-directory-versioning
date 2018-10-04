@@ -12,7 +12,7 @@ if __name__ == '__main__':
         path = os.path.join(xroot, partial)
         return path
 
-    root = os.path.join(os.getcwd(), '.versiondir')
+    root = os.path.join(os.getcwd(), '.versiondir/versions')
 
     filename, ext = os.path.splitext(sys.argv[1])
 

@@ -5,7 +5,7 @@ import os
 import re
 
 if __name__ == '__main__':
-    root = os.path.join(os.getcwd(), '.versiondir')
+    root = os.path.join(os.getcwd(), '.versiondir/versions')
 
     version_count = 0
     for i in os.listdir(root):
