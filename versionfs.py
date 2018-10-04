@@ -11,7 +11,6 @@ import filecmp
 
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 
-# TODO: put versions in folder
 # Constant for max. number of version files
 MAX_VER_COUNT = 6
 
@@ -35,6 +34,11 @@ class VersionFS(LoggingMixIn, Operations):
 
     # Helpers
     # =======
+
+    def _remove_prefix(self, path):
+        if path.startswith('/') or path.startswith('.'):
+            path = path[1:]
+        return path
 
     def _full_path(self, partial):
         if partial.startswith("/"):
@@ -102,7 +106,7 @@ class VersionFS(LoggingMixIn, Operations):
         if os.path.isdir(full_path):
             dirents.extend(os.listdir(full_path))
         for r in dirents:
-            if not r.startswith('.'):
+            if not r == 'versions':
                 yield r
 
     def readlink(self, path):
@@ -197,16 +201,19 @@ class VersionFS(LoggingMixIn, Operations):
         head, tail = os.path.split(path)  # Get filename of path and check whether it is hidden (starts with a '.')
         if self._is_save('release') and not tail.startswith('.'):
 
+            path_filename, path_ext = os.path.splitext(path)
+            if not os.path.exists(self._full_path('versions')):
+                os.makedirs(self._full_path('versions'))
+
             min_version = -1
             max_version = 0
             no_versions = 0
             # Finding all files in directory
-            for i in os.listdir(self.root):
+            for i in os.listdir(self._full_path('versions')):
                 filename, ext = os.path.splitext(i)
                 n = re.match("(\\S*)\\[\\d*\\]", filename)  # Get filename without any [...]
-                if n:
-                    filename = n.group(1)
-                    m = re.match(filename + "\\[(\\d*)\\]" + ext + "?", i)
+                if self._remove_prefix(n.group(1)) == self._remove_prefix(path_filename):
+                    m = re.match(self._remove_prefix(path_filename) + "\\[(\\d*)\\]" + ext + "?", self._remove_prefix(i))
                     if m:
                         no_versions += 1
                         max_version = int(m.group(1)) if max_version < int(m.group(1)) else max_version
@@ -214,14 +221,15 @@ class VersionFS(LoggingMixIn, Operations):
 
             # Check whether content has actually changed or not!
             filename, ext = os.path.splitext(path)
-            filename = filename[1:] if filename.startswith('/') else filename
-            if max_version == 0 or not filecmp.cmp(self._full_path(path), self._full_path('.' + filename + '[' + str(max_version) + ']' + ext)):
+            filename = self._remove_prefix(filename)
+
+            if max_version == 0 or not filecmp.cmp(self._full_path(path), self._full_path('versions/.' + filename + '[' + str(max_version) + ']' + ext)):
                 if no_versions >= MAX_VER_COUNT:
                     # Delete min-version
-                    to_delete = '.' + filename + '[' + str(min_version) + ']' + ext
+                    to_delete = 'versions/.' + filename + '[' + str(min_version) + ']' + ext
                     os.remove(self._full_path(to_delete))
 
-                to_create = '.' + filename + '[' + str(max_version + 1) + ']' + ext
+                to_create = 'versions/.' + filename + '[' + str(max_version + 1) + ']' + ext
                 self._copy_file(self._full_path(path), self._full_path(to_create))  # copy the file with a new version number
 
         return os.close(fh)
