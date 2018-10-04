@@ -24,7 +24,7 @@ if __name__ == '__main__':
 
     if len(version_list) < int(sys.argv[2]):
         print "You don't have that many versions."
-        exit(0)
+        exit(1)
 
 
     version_list.sort(reverse=True)
