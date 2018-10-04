@@ -11,6 +11,7 @@ import filecmp
 
 from fuse import FUSE, FuseOSError, Operations, LoggingMixIn
 
+# TODO: put versions in folder
 # Constant for max. number of version files
 MAX_VER_COUNT = 6
 
