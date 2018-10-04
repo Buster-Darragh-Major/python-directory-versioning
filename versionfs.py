@@ -22,6 +22,7 @@ MAX_VER_COUNT = 6
 state_dict = {
     'write': False,
     'flush': False,
+    'create': False
 }
 
 # TODO: investigate comment
@@ -66,7 +67,10 @@ class VersionFS(LoggingMixIn, Operations):
         if state == 'write':
             state_dict['write'] = True
             return False
-        elif state_dict['write'] and state == 'flush':
+        elif state == 'create':
+            state_dict['create'] = True
+            return False
+        elif (state_dict['write'] or state_dict['create']) and state == 'flush':
             state_dict['flush'] = True
             return False
         elif state_dict['flush'] and state == 'release':
@@ -175,7 +179,7 @@ class VersionFS(LoggingMixIn, Operations):
 
     def create(self, path, mode, fi=None):
         print '** create:', path, '**'
-
+        self._is_save('create')
         full_path = self._full_path(path)
         return os.open(full_path, os.O_WRONLY | os.O_CREAT, mode)
 

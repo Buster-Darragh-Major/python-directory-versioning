@@ -50,9 +50,12 @@ if __name__ == '__main__':
     to_copy = _full_path(root, '.' + filename + '[' + version_list[int(sys.argv[2]) - 1] + ']' + ext)
     latest_version = _full_path(root, '.' + filename + '[' + str(max_version + 1) + ']' + ext)
 
-    with open(to_copy, 'rb') as src, \  # File we are copying over
-            open(_full_path(root_no_ver, sys.argv[1]), 'wb') as dst, \  # True file we are 'restoring' version to
-            open(latest_version, 'wb') as new:  # Additional latest version file we create
+    # File we are copying over
+    # True file we are 'restoring' version to
+    # Additional latest version file we create
+    with open(to_copy, 'rb') as src, \
+            open(_full_path(root_no_ver, sys.argv[1]), 'wb') as dst, \
+            open(latest_version, 'wb') as new:
         while True:
             copy_buffer = src.read(1024*1024)
             if not copy_buffer:
