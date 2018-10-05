@@ -4,5 +4,5 @@
 # UPI:          bmaj406
 # Date:         5/08/2018
 
-fuser mount -u mount
+fusermount -u mount
 rm -r .versiondir
