@@ -74,10 +74,12 @@ class VersionFS(LoggingMixIn, Operations):
         elif state_dict['flush'] and state == 'release':
             state_dict['write'] = False
             state_dict['flush'] = False
+            state_dict['create'] = False
             return True
         else:
             state_dict['write'] = False
             state_dict['flush'] = False
+            state_dict['create'] = False
             return False
 
     # Filesystem methods
