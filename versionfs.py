@@ -25,8 +25,6 @@ state_dict = {
     'create': False
 }
 
-# TODO: investigate comment
-
 
 class VersionFS(LoggingMixIn, Operations):
     def __init__(self):
